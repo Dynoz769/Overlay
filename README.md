@@ -112,6 +112,14 @@ Tukar mode ke **Magic Chess** di atas. Tekan **Round menang / kalah** — round,
 Buka **<http://127.0.0.1:8799/auto.html>** dalam Chrome (START.bat buka sendiri) dan biarkan tab tu terbuka sepanjang live.
 Kali pertama, `START.bat` akan `npm install` OCR engine (perlu internet sekali sahaja; lepas tu boleh offline).
 
+### 📱 Main guna phone (iPhone / Android)
+Cucuk kabel USB ke laptop **tak** hantar skrin phone ke laptop (cuma charge / fail). Sistem perlukan skrin game terpapar di laptop dulu:
+1. **Capture card** (paling stabil): iPhone 15/16 USB-C → adapter *USB-C → HDMI* → *HDMI capture card USB* → laptop. OBS: **Video Capture Device**.
+2. **AirPlay** (tanpa wayar, iPhone): aplikasi penerima AirPlay di Windows (LonelyScreen / AirServer / 5KPlayer) → iPhone *Screen Mirroring*. OBS: **Window Capture**.
+3. **Android**: scrcpy → OBS **Window Capture**.
+
+Lepas skrin game nampak dalam OBS → klik kanan source → **Windowed Projector (Source)** → pilih dalam Auto Detect.
+
 **Sumber skrin** — paling baik:
 1. Dalam OBS, klik kanan source game (Game Capture / scrcpy / emulator) → **Windowed Projector (Source)**.
 2. Dalam auto.html tekan **🖥️ Tangkap tetingkap / skrin** → pilih tetingkap projector tu.

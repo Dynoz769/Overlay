@@ -28,6 +28,9 @@
     .tpl { display: flex; flex-wrap: wrap; gap: 8px; }
     .tpl > div { display: flex; align-items: center; gap: 6px; background: #0c070b; padding: 4px 6px; border-radius: 8px; font-size: 13px; }
     .tpl img { height: 36px; border-radius: 4px; }
+    .phone-help { margin: 10px 0; padding: 10px 14px; background: #0c070b; border: 1px solid var(--gold); border-radius: 10px; font-size: 14px; }
+    .phone-help summary { cursor: pointer; color: var(--gold); font-weight: 700; }
+    .phone-help li { margin: 6px 0; }
     .regsel button.on { background: var(--gold); color: #111; }
   </style>
 </head>
@@ -56,6 +59,18 @@
         Jangan tangkap output OBS yang dah ada overlay — nanti sistem baca overlay sendiri.
         OBS Virtual Camera pun boleh kalau set <b>Output Type: Source</b> → source game.
       </p>
+      <details class="phone-help">
+        <summary>📱 Main guna phone (iPhone / Android)? Baca ni dulu — cucuk kabel USB je <b>tak cukup</b></summary>
+        <p>Sistem ni baca skrin game yang terpapar di laptop. Kabel USB biasa cuma charge / pindah fail — skrin phone <b>tak</b> masuk laptop. Pilih satu cara untuk paparkan skrin phone di laptop dulu, masukkan dalam OBS, kemudian guna Windowed Projector macam biasa:</p>
+        <ol>
+          <li><b>Capture card (paling stabil, tiada lag)</b> — iPhone 15 / 16 (USB-C): adapter <i>USB-C → HDMI</i> + <i>HDMI capture card USB</i> ke laptop.
+            Dalam OBS: Sources → <b>Video Capture Device</b> → pilih capture card. Atau terus pilih capture card dalam senarai kamera di atas.</li>
+          <li><b>AirPlay tanpa wayar (iPhone)</b> — pasang aplikasi penerima AirPlay di Windows (cth LonelyScreen, AirServer, 5KPlayer), sambung iPhone &amp; laptop pada Wi-Fi sama,
+            iPhone: Control Centre → <b>Screen Mirroring</b> → pilih laptop. Dalam OBS: <b>Window Capture</b> → tetingkap aplikasi tu. Ada sedikit lag.</li>
+          <li><b>Android</b> — scrcpy (percuma, USB, lag rendah) → OBS Window Capture.</li>
+        </ol>
+        <p class="hint">Bila skrin game dah nampak dalam OBS, klik kanan source tu → Windowed Projector (Source) → pilih dalam "Tangkap tetingkap / skrin".</p>
+      </details>
       <div class="status">
         <span>Fasa: <b id="stPhase">—</b></span>
         <span>Mode: <b id="stMode">—</b></span>
