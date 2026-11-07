@@ -245,9 +245,13 @@
     const W = frame.width, H = frame.height;
     lastBoxes = words.map((w) => w.bbox);
 
-    // tukar mode automatik
-    if (/magic\s*chess/i.test(text) && S.mode !== 'mc') { patch({ mode: 'mc' }); log('Magic Chess dikesan → mode MC', 'warn'); }
-    if (S.mode === 'mc') return;
+    // tukar mode automatik (perlu 2 scan berturut supaya tak tersalah)
+    const vote = modeVote(text);
+    G.voteMC = vote === 'mc' ? (G.voteMC || 0) + 1 : 0;
+    G.voteML = vote === 'ml' ? (G.voteML || 0) + 1 : 0;
+    if (G.voteMC >= 2 && S.mode !== 'mc') { S.mode = 'mc'; patch({ mode: 'mc' }); log('Magic Chess Go Go dikesan → mode MC', 'warn'); }
+    if (G.voteML >= 2 && S.mode !== 'ml') { S.mode = 'ml'; patch({ mode: 'ml' }); log('Mobile Legends dikesan → mode ML', 'warn'); }
+    if (S.mode === 'mc') { if (A().on.mc) mcFromFull(d1, d2, text); return; }
 
     const heroes = [...new Map([...findHeroes(d1.words || []), ...findHeroes(d2.words || [])].map((h) => [h.hero + Math.round(h.cy / 40), h])).values()];
     const isDraft = DRAFT_RE.test(text);
@@ -645,42 +649,174 @@
     log(`Ikon item baru di slot ${slot + 1} — label sekali dalam panel "Ikon item baru"`, 'warn');
   }
 
-  // ---------- 4) Magic Chess ----------
-  async function scanMC() {
-    const R = A().regions;
-    const read = async (r, h = 90) => (await ocr(wReg, cropCanvas(r, { height: h, threshold: 160 }))).text;
-    const round = (await read(R.mcRound)).match(/(\d)\s*[-–]\s*(\d)/);
-    const gold = (await read(R.mcGold)).match(/\d{1,3}/);
-    const hpM = (await read(R.mcHp)).match(/\d{1,3}/);
+  // ---------- 4) Magic Chess Go Go ----------
+  // Tak perlu set kawasan: baca skrin penuh dan cari petunjuk.
+  //   round  = corak "2-3" di bahagian atas
+  //   HP     = nombor sebaris dengan IGN kau dalam senarai pemain
+  //   gold   = nombor yang ada ikon syiling emas di sebelah
+  //   level  = "Lv.5" / "Level 5"
+  //   synergy= baris "Nama 2/4" di sebelah kiri
+  // Kawasan MC yang kau lukis sendiri (kalau ada) diutamakan.
+  const MC_SIGS = ['refresh', 'commander', 'synerg', 'buyexp', 'interest', 'lineup', 'recruit', 'gogo', 'magicchess', 'bench', 'reroll', 'winstreak', 'losestreak'];
+  const ML_SIGS = ['recall', 'retribution', 'turtle', 'lord'];
+  function modeVote(text) {
+    const t = norm(text);
+    const mc = MC_SIGS.filter((w) => t.includes(w)).length;
+    const ml = ML_SIGS.filter((w) => t.includes(w)).length + (DRAFT_RE.test(text) ? 2 : 0);
+    if (mc >= 2 && mc > ml) return 'mc';
+    if (ml >= 2 && ml > mc) return 'ml';
+    return null;
+  }
+
+  // nisbah piksel emas di kiri/kanan kotak (ikon syiling)
+  function goldPx(x, y, w, h) {
+    x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y)); w = Math.round(w); h = Math.round(h);
+    if (w < 2 || h < 2 || x + w > frame.width || y + h > frame.height) return 0;
+    const d = fctx.getImageData(x, y, w, h).data;
+    let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 180 && d[i + 1] > 130 && d[i + 2] < 100 && d[i] > d[i + 2] + 90) n++;
+    return n / (d.length / 4);
+  }
+  // ikon syiling "melekat" dalam kotak perkataan (OCR baca sebagai 0 / ® / @)
+  const coinInside = (bb) => goldPx(bb.x0, bb.y0, Math.min(bb.y1 - bb.y0, bb.x1 - bb.x0), bb.y1 - bb.y0) > 0.25;
+  function coinRatio(bb) {
+    const h = bb.y1 - bb.y0; if (h < 6) return 0;
+    let best = 0;
+    for (const x0 of [bb.x0 - h * 1.6, bb.x1]) {
+      const x = Math.max(0, Math.round(x0)), w = Math.round(h * 1.6), y = Math.max(0, Math.round(bb.y0 - h * 0.2));
+      if (x + w > frame.width || w < 2) continue;
+      const d = fctx.getImageData(x, y, w, Math.round(h * 1.4)).data;
+      let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 180 && d[i + 1] > 130 && d[i + 2] < 100 && d[i] > d[i + 2] + 90) n++;
+      best = Math.max(best, n / (d.length / 4));
+    }
+    return best;
+  }
+
+  function mcFromFull(d1, d2, text) {
+    const W = frame.width, H = frame.height;
+    const lines = [...(d1.lines || []), ...(d2.lines || [])];
+    const words = [...(d1.words || []), ...(d2.words || [])].filter((w) => w.text.trim());
+    const r = {};
+
+    // round: "2-3" paling dekat tengah atas
+    let bestR = null, bestD = 1e9;
+    for (const w of words) {
+      const m = w.text.match(/^\D?([1-9])\s*[-–—]\s*([1-9])\D?$/);
+      if (!m || w.bbox.y0 > H * 0.3) continue;
+      const dist = Math.abs((w.bbox.x0 + w.bbox.x1) / 2 - W / 2) + w.bbox.y0;
+      if (dist < bestD) { bestD = dist; bestR = `${m[1]}-${m[2]}`; }
+    }
+    if (!bestR) for (const l of lines) {
+      const m = l.text.match(/(?:round|stage)\s*([1-9])\s*[-–—]\s*([1-9])/i);
+      if (m) { bestR = `${m[1]}-${m[2]}`; break; }
+    }
+    if (bestR) r.round = bestR;
+
+    // level komander
+    for (const l of lines) { const m = l.text.match(/\b(?:lv|lvl|level)\.?\s*(\d{1,2})\b/i); if (m && +m[1] >= 1 && +m[1] <= 10) { r.level = +m[1]; break; } }
+
+    // HP: baris yang ada IGN
+    if (A().ign) {
+      const ign = norm(A().ign).slice(0, 8);
+      for (const l of lines) {
+        const t = norm(l.text);
+        if (ign.length < 3 || fuzzyIn(t, ign) > tol(ign.length)) continue;
+        const nums = (l.text.replace(new RegExp(A().ign.replace(/[^a-z0-9]/gi, '.?'), 'i'), ' ').match(/\b\d{1,3}\b/g) || []).map(Number).filter((n) => n <= 100);
+        if (nums.length) { r.hp = nums[nums.length - 1]; break; }
+        // nombor dalam baris berdekatan (bar HP sebelah nama)
+        const ly = (l.bbox.y0 + l.bbox.y1) / 2, lh = l.bbox.y1 - l.bbox.y0;
+        const near = words.filter((w) => /^\d{1,3}$/.test(w.text.trim()) && +w.text <= 100 && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - ly) < lh * 1.5 && Math.abs(w.bbox.x0 - l.bbox.x1) < W * 0.15);
+        if (near.length) { r.hp = +near[0].text; break; }
+      }
+    }
+
+    // gold: nombor dengan ikon syiling — ambil yang tulisan paling besar
+    let gBest = null, gH = 0;
+    for (const w of words) {   // d1 (gambar asal) diproses dulu → diutamakan bila sama saiz
+      const t = w.text.trim();
+      if (!/^\D?\d{1,4}$/.test(t)) continue;
+      const h = w.bbox.y1 - w.bbox.y0;
+      if (h <= gH) continue;
+      let val = null;
+      if (coinInside(w.bbox) && t.length >= 2) val = t.slice(1).replace(/\D/g, '');
+      else if (/^\d{1,3}$/.test(t) && coinRatio(w.bbox) > 0.12) val = t;
+      if (val && val.length <= 3) { gH = h; gBest = +val; }
+    }
+    if (gBest != null) r.gold = gBest;
+
+    // synergy: "Nama 2/4" di kiri skrin
+    const syn = [];
+    for (const l of lines) {
+      if (l.bbox.x0 > W * 0.4) continue;
+      const m = l.text.match(/([A-Za-z][A-Za-z .'&-]{2,22}?)\s*[:\-]?\s*(\d)\s*[\/|]\s*(\d{1,2})/);
+      if (!m) continue;
+      const name = m[1].trim().replace(/\s+/g, ' ');
+      if (name.length < 3 || syn.some((x) => norm(x.name) === norm(name))) continue;
+      syn.push({ name, count: +m[2], need: +m[3] });
+    }
+    if (syn.length) r.synergies = syn;
+
+    // kedudukan akhir
+    if (G.mcRound) {
+      const m = text.match(/\b([1-8])\s*(st|nd|rd|th)\b/i) || text.match(/(?:no\.?|top|rank|place|placement|#)\s*([1-8])\b/i);
+      if (m) r.place = +m[1];
+    }
+    updateMC(r, 'skrin penuh');
+  }
+
+  const SYN_COLORS = ['#ffc93c', '#8b5cff', '#36b8ff', '#ff2d4a', '#19b36b', '#ff8a1e', '#b6ff3c'];
+  function updateMC(r, src) {
     const p = {};
-    if (gold) p.gold = Number(gold[0]);
-    const hp = hpM ? Math.min(100, Number(hpM[0])) : null;
-    if (hp != null) p.hp = hp;
-    if (round) {
-      const r = `${round[1]}-${round[2]}`;
-      if (r !== G.mcRound) {
-        if (G.mcRound && G.mcHp != null && hp != null) {
-          const lost = hp < G.mcHp;
-          const sk = lost ? Math.min(0, S.mc.streak) - 1 : Math.max(0, S.mc.streak) + 1;
-          p.streak = sk;
-          fire(lost ? (sk <= -3 ? { kind: 'mc', type: 'losestreak', n: -sk } : { kind: 'mc', type: 'lose' }) : (sk >= 3 ? { kind: 'mc', type: 'streak', n: sk } : { kind: 'mc', type: 'win' }));
-        }
-        if (r === '1-1') { G.mcRankFired = false; p.streak = 0; }
-        G.mcRound = r; p.round = r;
-        G.mcHp = hp ?? G.mcHp;
+    if (r.gold != null && r.gold !== S.mc.gold) p.gold = r.gold;
+    if (r.level != null && r.level !== S.mc.level) p.level = r.level;
+    if (r.hp != null) { G.mcHpNow = r.hp; if (r.hp !== S.mc.hp) p.hp = r.hp; }
+    if (r.round && r.round !== G.mcRound) {
+      // round bertukar → menang kalau HP tak turun sejak awal round lepas
+      if (G.mcRound && G.mcHpStart != null && G.mcHpNow != null) {
+        const lost = G.mcHpNow < G.mcHpStart;
+        const sk = lost ? Math.min(0, S.mc.streak) - 1 : Math.max(0, S.mc.streak) + 1;
+        p.streak = sk;
+        fire(lost ? (sk <= -3 ? { kind: 'mc', type: 'losestreak', n: -sk } : { kind: 'mc', type: 'lose' }) : (sk >= 3 ? { kind: 'mc', type: 'streak', n: sk } : { kind: 'mc', type: 'win' }));
       }
+      if (/^1-[12]$/.test(r.round)) { G.mcRankFired = false; p.streak = 0; if (G.mcRound) log('Game Magic Chess baru', 'warn'); }
+      log(`MC round ${r.round} (${src})`);
+      G.mcRound = r.round; p.round = r.round; G.mcHpStart = G.mcHpNow ?? null;
     }
-    if (Object.keys(p).length) patch({ mc: p });
-    if (!G.mcRankFired) {
-      const t = (await read(R.mcRank, 140)).toLowerCase();
-      const m = t.match(/\b([1-8])\s*(st|nd|rd|th)\b/) || t.match(/(?:no\.?|top|rank|#)\s*([1-8])\b/);
-      if (m) {
-        G.mcRankFired = true;
-        const place = Number(m[1]);
-        fire({ kind: 'mc', type: 'place', place });
-        patch({ record: place <= 4 ? { w: S.record.w + 1 } : { l: S.record.l + 1 } });
+    if (r.level != null && G.mcLevel && r.level > G.mcLevel) fire({ kind: 'mc', type: 'levelup' });
+    if (r.level != null) G.mcLevel = r.level;
+    if (r.synergies) {
+      const sig = JSON.stringify(r.synergies);
+      if (sig === G.mcSynPrev && sig !== G.mcSynSet) {   // stabil 2 scan
+        G.mcSynSet = sig;
+        const before = new Set((S.mc.synergies || []).filter((x) => +x.count >= +x.need).map((x) => norm(x.name)));
+        p.synergies = r.synergies.map((x, i) => ({ ...x, color: SYN_COLORS[i % SYN_COLORS.length] }));
+        r.synergies.filter((x) => x.count >= x.need && !before.has(norm(x.name))).forEach((x) => fire({ kind: 'mc', type: 'synergy', text: `${x.name} (${x.count})` }));
       }
+      G.mcSynPrev = sig;
     }
+    if (r.place && !G.mcRankFired) {
+      G.mcRankFired = true;
+      fire({ kind: 'mc', type: 'place', place: r.place });
+      patch({ record: r.place <= 4 ? { w: S.record.w + 1 } : { l: S.record.l + 1 } });
+    }
+    if (Object.keys(p).length) { Object.assign(S.mc, p); patch({ mc: p }); }
+    $('stMC').textContent = `R ${G.mcRound || '-'} · HP ${S.mc.hp} · 💰${S.mc.gold} · Lv${S.mc.level} · ${(S.mc.synergies || []).map((x) => `${x.name} ${x.count}/${x.need}`).join(', ') || 'tiada synergy'}`;
+  }
+
+  // kawasan MC yang dilukis sendiri — lebih laju & tepat (pilihan)
+  async function scanMC() {
+    const R = A().regions, cal = A().calibrated || {};
+    if (!Object.keys(cal).some((k) => k.startsWith('mc') && cal[k])) return;
+    const read = async (r, h = 90) => (await ocr(wReg, cropCanvas(r, { height: h, pad: 10 }))).text;
+    const r = {};
+    if (cal.mcRound) { const m = (await read(R.mcRound)).match(/([1-9])\s*[-–—]\s*([1-9])/); if (m) r.round = `${m[1]}-${m[2]}`; }
+    if (cal.mcGold) { const m = (await read(R.mcGold)).match(/\d{1,3}/); if (m) r.gold = +m[0]; }
+    if (cal.mcHp) { const m = (await read(R.mcHp)).match(/\d{1,3}/); if (m && +m[0] <= 100) r.hp = +m[0]; }
+    if (cal.mcRank && G.mcRound && !G.mcRankFired) {
+      const t = await read(R.mcRank, 140);
+      const m = t.match(/\b([1-8])\s*(st|nd|rd|th)\b/i) || t.match(/(?:no\.?|top|rank|place|#)\s*([1-8])\b/i);
+      if (m) r.place = +m[1];
+    }
+    updateMC(r, 'kawasan');
   }
 
   // ---------- jadual (Web Worker ticker — tak diperlahankan bila tab di belakang) ----------
@@ -690,7 +826,7 @@
     if (!S || !wFull || !grab()) return drawPreview();
     const now = Date.now();
     const mc = S.mode === 'mc';
-    const fullEvery = G.phase === 'game' ? 6000 : 2500;
+    const fullEvery = mc ? 3000 : G.phase === 'game' ? 6000 : 2500;
     if (!busyFull && now - lastFull > fullEvery) {
       busyFull = true; lastFull = now;
       scanFull().catch((e) => log('scan: ' + e.message, 'err')).finally(() => { busyFull = false; });
@@ -728,7 +864,7 @@
     const r = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
     if (r.w < 0.01 || r.h < 0.01) return;
     const R = Object.fromEntries(Object.entries(r).map(([k, v]) => [k, Math.round(v * 1000) / 1000]));
-    patch({ auto: { regions: { [editReg]: R } } });
+    patch({ auto: { regions: { [editReg]: R }, calibrated: { [editReg]: true } } });
     G.slotPrev = []; G.slotStable = [];
     log(`Kawasan "${REG_LABEL[editReg]}" dikemas kini`);
   });
@@ -782,5 +918,5 @@
 
   resetGame();
   // hook untuk debug / test
-  window.__auto = { scanFull, grab, cropCanvas, ocr, findHeroes, regionPng, regionVec, bestTemplate, video, frame, workers: () => ({ wFull, wReg }), G };
+  window.__auto = { mcFromFull, updateMC, scanFull, grab, cropCanvas, ocr, findHeroes, regionPng, regionVec, bestTemplate, video, frame, workers: () => ({ wFull, wReg }), G };
 })();

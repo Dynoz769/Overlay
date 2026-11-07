@@ -45,7 +45,7 @@ const DEFAULT_STATE = {
     ign: '',            // nama in-game kau — untuk kenal team kau di loading screen
     mainHero: '',       // hero utama — untuk ban suggestion masa fasa ban
     allyRow: 'auto',    // loading screen: 'auto' | 'top' | 'bottom'
-    on: { draft: true, loading: true, kill: true, result: true, items: false, mc: false, capture: true, allyKillsOnly: true },
+    on: { draft: true, loading: true, kill: true, result: true, items: false, mc: true, capture: true, allyKillsOnly: true },
     items: { mode: 'inventory', slots: 6, dir: 'horizontal' },
     regions: {
       banner: { x: 0.28, y: 0.08, w: 0.44, h: 0.26 },

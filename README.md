@@ -116,7 +116,7 @@ Kali pertama, `START.bat` akan `npm install` OCR engine (perlu internet sekali s
 | In-game | Banner **Savage / Maniac / First Blood / Killing Spree…** → banner overlay (team kau sahaja — warna biru vs merah) |
 | Item | Ikon baru dalam slot item → kad item (ikon diambil dari skrin), 6 item → ITEM PENUH |
 | Tamat | **VICTORY / DEFEAT** → animasi + rekod W-L, game reset sendiri |
-| Magic Chess | Tulisan "Magic Chess" → tukar mode sendiri; baca round/HP/gold, kira menang-kalah round & streak, kedudukan akhir |
+| Magic Chess Go Go | Kenal skrin MCGG (Refresh, Buy EXP, Commander…) → tukar mode sendiri. Tanpa set kawasan: baca **round** ("2-3"), **HP kau** (nombor sebaris IGN dalam senarai pemain), **gold** (nombor sebelah ikon syiling), **level** ("Lv.5"), **synergy** ("Mage 2/4"). Round menang/kalah dikira dari HP, streak, Level Up, Synergy Aktif, kedudukan akhir (1st…8th) + rekod W-L |
 
 **Setup sekali sahaja (5 minit):**
 1. Isi **IGN** dan **hero utama**.
@@ -127,7 +127,8 @@ Kali pertama, `START.bat` akan `npm install` OCR engine (perlu internet sekali s
 **Had yang perlu tahu (jujur):**
 - OCR baca nama hero dengan baik, tapi tulisan besar bergaya (SAVAGE, VICTORY) susah untuk OCR — sebab tu template matching jadi cara utama. Dalam test, VICTORY dikesan dengan skor 0.86–0.92 dan tiada trigger palsu.
 - Spell musuh *tak boleh* dilihat dari skrin — timer mula guna suara / Stream Deck / hotkey (macam dalam video). Spell default diisi ikut lane (jungle = Retribution, lain = Flicker); sebut "Hirara inspire" untuk tukar.
-- Kawasan default ialah anggaran — set ikut skrin kau dulu, terutamanya untuk Magic Chess (belum diuji dengan rakaman MC sebenar).
+- Kawasan default ialah anggaran — set ikut skrin kau dulu.
+- **MCGG** diuji dengan skrin MCGG *tiruan* sahaja (semua bacaan lulus), belum dengan rakaman MCGG sebenar. Pastikan **IGN** diisi (untuk HP). Kalau ada nilai yang tak dibaca, lukis kawasan MC round / gold / HP / kedudukan — kawasan yang kau lukis diutamakan. Status bacaan MC nampak terus di bar status halaman Auto Detect.
 - Rakam satu game dan test guna **"Test guna video rakaman"** sebelum live.
 
 ## Struktur
