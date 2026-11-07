@@ -258,7 +258,7 @@
     if (isDraft && S.mode !== 'ml') patch({ mode: 'ml' });
 
     if (isDraft && A().on.draft) {
-      if (G.phase !== 'draft') { if (G.phase !== 'idle' || G.ally.length || G.resultFired) resetGame('draft baru'); setPhase('draft'); }
+      if (G.phase !== 'draft') { if (G.phase !== 'idle' || G.ally.length || G.resultFired) resetGame('draft baru'); setPhase('draft'); resetML(); }
       handleDraft(text, heroes, W);
       return;
     }
@@ -278,9 +278,76 @@
       return;
     }
     if (G.phase === 'draft' || G.phase === 'loading') {
-      if (++G.loadingMiss >= 2) setPhase('game');
+      if (++G.loadingMiss >= 2) { setPhase('game'); G.gameStart = Date.now(); }
     }
     // kalau terlepas fasa: VICTORY/DEFEAT dikesan pada scan pantas
+    if (G.phase === 'game' || G.phase === 'idle') mlFromFull(d1, d2);
+  }
+
+  // ---------- HUD Mobile Legends: masa, skor kill, KDA, gold → analisis game ----------
+  const ML_EMPTY = { minute: 0, sec: 0, allyKills: 0, enemyKills: 0, kda: null, gold: 0, turtles: { ally: 0, enemy: 0 }, lords: { ally: 0, enemy: 0 } };
+  function resetML() { G.mlNext = 3; G.gameStart = null; S.ml = structuredClone(ML_EMPTY); patch({ ml: structuredClone(ML_EMPTY) }); }
+  function mlFromFull(d1, d2) {
+    const W = frame.width, H = frame.height;
+    const words = [...(d1.words || []), ...(d2.words || [])].filter((w) => w.text.trim());
+    const lines = [...(d1.lines || []), ...(d2.lines || [])];
+    const p = {};
+    // masa game "08:35" di tengah atas
+    let tw = null, td = 1e9;
+    for (const w of words) {
+      const m = w.text.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+      if (!m || w.bbox.y0 > H * 0.15 || +m[2] > 59) continue;
+      const dist = Math.abs((w.bbox.x0 + w.bbox.x1) / 2 - W / 2);
+      if (dist < td && dist < W * 0.2) { td = dist; tw = { w, min: +m[1], sec: +m[2] }; }
+    }
+    if (tw) {
+      p.minute = tw.min; p.sec = tw.sec;
+      // skor kill: nombor kiri (team kau, biru) & kanan (musuh, merah) sebaris dengan masa
+      const cy = (tw.w.bbox.y0 + tw.w.bbox.y1) / 2, h = tw.w.bbox.y1 - tw.w.bbox.y0;
+      const nums = words.filter((w) => /^\d{1,2}$/.test(w.text.trim()) && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - cy) < h * 1.2);
+      const left = nums.filter((w) => w.bbox.x1 <= tw.w.bbox.x0 && tw.w.bbox.x0 - w.bbox.x1 < W * 0.15).sort((a, b) => b.bbox.x1 - a.bbox.x1)[0];
+      const right = nums.filter((w) => w.bbox.x0 >= tw.w.bbox.x1 && w.bbox.x0 - tw.w.bbox.x1 < W * 0.15).sort((a, b) => a.bbox.x0 - b.bbox.x0)[0];
+      if (left) p.allyKills = +left.text;
+      if (right) p.enemyKills = +right.text;
+    } else if (G.gameStart) {
+      const s = Math.floor((Date.now() - G.gameStart) / 1000);   // anggaran kalau masa tak dapat dibaca
+      p.minute = Math.floor(s / 60); p.sec = s % 60;
+    }
+    // KDA "5/2/7" — tulisan kecil, jadi terima hanya bila 2 bacaan setuju (2 versi OCR, atau scan sebelum)
+    const kdaOf = (ls) => { for (const l of ls || []) { if (l.bbox.y0 > H * 0.3) continue; const m = l.text.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{1,2})/); if (m) return `${+m[1]}/${+m[2]}/${+m[3]}`; } return null; };
+    const k1 = kdaOf(d1.lines), k2 = kdaOf(d2.lines);
+    const kOk = (k1 && (k1 === k2 || k1 === G.kdaPrev)) ? k1 : (k2 && k2 === G.kdaPrev) ? k2 : null;
+    G.kdaPrev = k1 || k2;
+    if (kOk) { const [k, dd, a] = kOk.split('/').map(Number); p.kda = { k, d: dd, a }; }
+    // gold (nombor sebelah ikon syiling)
+    let gH = 0;
+    for (const w of words) {
+      const t = w.text.trim(); if (!/^\D?\d{2,5}$/.test(t)) continue;
+      const h = w.bbox.y1 - w.bbox.y0; if (h <= gH) continue;
+      let val = null;
+      if (coinInside(w.bbox) && t.length >= 3) val = t.slice(1).replace(/\D/g, '');
+      else if (/^\d{2,5}$/.test(t) && coinRatio(w.bbox) > 0.12) val = t;
+      if (val) { gH = h; p.gold = +val; }
+    }
+    if (!Object.keys(p).length) return;
+    // kill tak boleh turun dalam satu game — abaikan bacaan salah
+    if (p.allyKills != null && p.allyKills < (S.ml?.allyKills || 0)) delete p.allyKills;
+    if (p.enemyKills != null && p.enemyKills < (S.ml?.enemyKills || 0)) delete p.enemyKills;
+    S.ml = { ...(S.ml || {}), ...p };
+    patch({ ml: p });
+    $('stML').textContent = `${String(S.ml.minute).padStart(2, '0')}:${String(S.ml.sec).padStart(2, '0')} · Kill ${S.ml.allyKills}-${S.ml.enemyKills}${S.ml.kda ? ` · KDA ${S.ml.kda.k}/${S.ml.kda.d}/${S.ml.kda.a}` : ''}${S.ml.gold ? ` · 💰${S.ml.gold}` : ''}`;
+    // analisis setiap 3 minit game
+    if (G.mlNext == null) G.mlNext = 3;
+    if (S.ml.minute >= G.mlNext) { G.mlNext = (Math.floor(S.ml.minute / 3) + 1) * 3; mlAnalysis(`minit ${S.ml.minute}`); }
+  }
+  let mlT;
+  function mlAnalysis(why) {
+    clearTimeout(mlT);
+    mlT = setTimeout(() => {
+      const a = window.MLANALYSIS.analyze(S);
+      log(`📊 Analisis ML (${why}): Menang ${a.win}% · ${a.plan}`, 'ev');
+      fire({ kind: 'ml', type: 'analysis' });
+    }, 2500);
   }
 
   function confirm(key) { G.hits[key] = (G.hits[key] || 0) + 1; return G.hits[key] >= 2; }
@@ -337,6 +404,7 @@
       myHero = allyH.slice().sort((a, b) => Math.abs(a.cx - ix) - Math.abs(b.cx - ix))[0]?.hero || myHero;
     }
     G.loadingDone = true;
+    resetML();
     G.items.clear(); G.slotStable = []; $('stItems').textContent = 0;
     $('stDraft').textContent = `${G.ally.join(', ')}  VS  ${G.enemy.join(', ')}`;
     log(`Loading: ALLY ${G.ally.join(', ')} | ENEMY ${G.enemy.join(', ')} | hero aku: ${myHero || '?'}`, 'ev');
@@ -460,6 +528,15 @@
   function doKill(type, how) {
     const team = teamColor(A().regions.banner);
     G.lastKill = Date.now();
+    // kira Turtle / Lord setiap team (termasuk musuh) untuk analisis
+    if (type === 'lord' || type === 'turtle') {
+      const key = type + 's';
+      const cur = { ally: 0, enemy: 0, ...(S.ml?.[key] || {}) };
+      cur[team]++;
+      S.ml = { ...(S.ml || {}), [key]: cur };
+      patch({ ml: { [key]: cur } });
+    }
+    if (['lord', 'savage', 'wipe', 'maniac', 'shutdown'].includes(type)) mlAnalysis(type);
     if (A().on.allyKillsOnly && team === 'enemy' && type !== 'shutdown') { log(`Banner musuh (${type}, ${how}) — abaikan`); return; }
     log(`Kill: ${type} (${how})`, 'warn');
     if (type === 'death') { log('Aku mati — tiada overlay'); return; }
@@ -950,5 +1027,5 @@
 
   resetGame();
   // hook untuk debug / test
-  window.__auto = { mcFromFull, updateMC, scanFull, grab, cropCanvas, ocr, findHeroes, regionPng, regionVec, bestTemplate, video, frame, workers: () => ({ wFull, wReg }), G };
+  window.__auto = { mlFromFull, mcFromFull, updateMC, scanFull, grab, cropCanvas, ocr, findHeroes, regionPng, regionVec, bestTemplate, video, frame, workers: () => ({ wFull, wReg }), G };
 })();

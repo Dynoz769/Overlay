@@ -58,6 +58,14 @@ Tekan butang dalam control panel. Hotkey (bila bukan sedang menaip): `K` solo ki
 
 > Win prediction ialah heuristik (counter + komposisi role + lane coverage), bukan data rasmi. Edit senarai counter / meta ban dalam `public/data/heroes.js`.
 
+### 📊 Analisis Game ML (auto)
+Masa game berjalan, Auto Detect baca HUD: **masa** (tengah atas), **skor kill** (kiri = team kau, kanan = musuh), **KDA** kau, **gold**, dan kira **Turtle / Lord** setiap team dari banner. Setiap **3 minit game** (3:00, 6:00, 9:00…) dan selepas **Lord / Savage / Wiped Out / Shut Down**, panel analisis keluar:
+- **Peluang menang live** ally vs enemy — gabungan draft (counter), beza kill, objektif, fasa power spike dan KDA. Awal game draft lebih berat; makin lama, skor & objektif lebih penting.
+- **Strategi**: `PUSH & LORD`, `GROUP & TEAMFIGHT`, `FARM & TUNGGU SPIKE`, `AMBIL TURTLE`, `SNOWBALL`, `MAIN SELAMAT`, `DEFEND`, `KAWAL OBJEKTIF` + tip (cth "Lord keluar minit 8:00", "Hati-hati Saber — counter Hirara", "KDA 8/2/6 — jangan mati untuk shut down").
+- Rekod W-L atas overlay juga tunjuk peluang menang & strategi semasa.
+
+Nilai boleh dibetulkan / diisi manual dalam control panel (bahagian *Analisis Game*). Peluang ialah anggaran heuristik; masa Turtle/Lord dan pemberat boleh diubah dalam `public/js/mlanalysis.js`.
+
 ### Voice Spell
 1. Isi hero musuh + spell mereka (Flicker 120s, Retribution 35s, Inspire 75s, dll.).
 2. Klik **🎙️ Mula voice listener** (Chrome akan minta izin mic).
@@ -80,7 +88,8 @@ URL lain untuk Stream Deck / AutoHotkey:
 /fullbuild   /win   /lose
 /draft?v=predict   (predict | spike | ban | cycle)
 /mode?m=mc         (ml | mc)
-/mc?t=win          (win | lose | streak | losestreak | levelup | place&place=1)
+/mc?t=win          (win | lose | streak | losestreak | levelup | analysis | place&place=1)
+/ml               papar analisis game ML
 ```
 
 ### Magic Chess

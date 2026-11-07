@@ -57,7 +57,14 @@
     set('spells', show.spells && S.mode === 'ml');
     set('mc', show.mc && S.mode === 'mc'); set('syn', show.mc && S.mode === 'mc');
     if ($('badge')) $('badge').textContent = S.badge || 'SISTEM LIVE';
-    if ($('record')) $('record').innerHTML = `<b class="w">W ${S.record.w}</b> · <b class="l">L ${S.record.l}</b>`;
+    if ($('record')) {
+      let chip = '';
+      if (S.mode === 'ml' && window.MLANALYSIS && (S.ml?.minute || S.ml?.allyKills || S.ml?.enemyKills)) {
+        const a = MLANALYSIS.analyze(S);
+        chip = ` · <b style="color:var(--blue)">${a.win}%</b> <b style="color:${a.color}">${esc(a.plan)}</b>`;
+      }
+      $('record').innerHTML = `<b class="w">W ${S.record.w}</b> · <b class="l">L ${S.record.l}</b>${chip}`;
+    }
     renderMC();
     renderPromo(true);
   }
@@ -91,6 +98,7 @@
       case 'draft': return showDraft(ev);
       case 'spell': return showCallout(ev);
       case 'mc': return showMC(ev);
+      case 'ml': return showMLAnalysis();
       case 'text': return enqueue(() => node('pop kill', `<div class="bar"><h1 style="font-size:96px">${esc(ev.text)}</h1>${ev.sub ? `<div class="sub">${esc(ev.sub)}</div>` : ''}</div>`), ev.ms || 3500, 'pop');
     }
   }
@@ -317,6 +325,27 @@
       </div>
       <div class="mca-bar"><i style="width:0%"></i><label>KEKUATAN ${a.strength}</label></div>
       <ul class="mca-tips">${a.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`, a.strength), 9000, 'pop');
+  }
+
+  function showMLAnalysis() {
+    if (!S || !window.MLANALYSIS) return;
+    const a = MLANALYSIS.analyze(S);
+    const t = `${String(a.minute).padStart(2, '0')}:${String(a.sec).padStart(2, '0')}`;
+    const o = a.obj;
+    const build = (html) => { const el = node('pop dpanel mca', html); setTimeout(() => { const b = el.querySelector('.wp-bar i'); if (b) b.style.width = a.win + '%'; }, 700); return el; };
+    enqueue(() => build(`${tag('Mobile Legends · Analisis Game')}
+      <div class="mca-head"><div><div class="dsub" style="text-align:left">Masa</div><div class="mca-round">${t}</div></div>
+        <div class="mca-pct t4"><small>ALLY MENANG</small><b>${a.win}%</b></div>
+        <div class="mca-pct" style="color:var(--red)"><small>ENEMY</small><b style="color:var(--red)">${100 - a.win}%</b></div></div>
+      <div class="wp-bar" style="margin:6px 0 12px"><i style="width:50%"></i></div>
+      <div class="mca-plan" style="--pc:${a.color}"><span>STRATEGI</span><b>${esc(a.plan)}</b></div>
+      <div class="mca-stats">
+        <span>⚔️ Kill <b style="color:var(--blue)">${a.ak}</b> - <b style="color:var(--red)">${a.ek}</b></span>
+        ${a.kda ? `<span>🎯 KDA ${a.kda.k}/${a.kda.d}/${a.kda.a}</span>` : ''}
+        <span>🐢 ${o.at}-${o.et} · 🐉 ${o.al}-${o.el}</span>
+        <span>⏱ ${a.phaseLabel} <em>${esc(a.spikeNote)}</em></span>
+      </div>
+      <ul class="mca-tips" style="margin-top:10px">${a.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`), 9000, 'pop');
   }
 
   function showMC(ev) {

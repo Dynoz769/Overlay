@@ -211,6 +211,24 @@
     fire({ kind: 'mc', type: 'place', place: Number(p) });
     if (p <= 4) patch({ record: { w: S.record.w + 1 } }); else patch({ record: { l: S.record.l + 1 } });
   };
+  // ---------- Analisis ML ----------
+  $('mlAnalyse').onclick = () => fire({ kind: 'ml', type: 'analysis' });
+  const mlNum = (id, k) => $(id).addEventListener('change', (e) => patch({ ml: { [k]: Number(e.target.value) || 0 } }));
+  mlNum('mlMin', 'minute'); mlNum('mlAk', 'allyKills'); mlNum('mlEk', 'enemyKills');
+  $('mlKda').addEventListener('change', (e) => { const m = e.target.value.match(/(\d+)\D+(\d+)\D+(\d+)/); patch({ ml: { kda: m ? { k: +m[1], d: +m[2], a: +m[3] } : null } }); });
+  $('mlObj').addEventListener('change', (e) => {
+    const n = (e.target.value.match(/\d+/g) || []).map(Number);
+    patch({ ml: { turtles: { ally: n[0] || 0, enemy: n[1] || 0 }, lords: { ally: n[2] || 0, enemy: n[3] || 0 } } });
+  });
+  function renderMLAnalysis() {
+    if (!window.MLANALYSIS || !S || !S.ml) return;
+    const a = MLANALYSIS.analyze(S), ml = S.ml;
+    const setVal = (el, v) => { if (el && document.activeElement !== el) el.value = v ?? ''; };
+    setVal($('mlMin'), ml.minute); setVal($('mlAk'), ml.allyKills); setVal($('mlEk'), ml.enemyKills);
+    setVal($('mlKda'), ml.kda ? `${ml.kda.k}/${ml.kda.d}/${ml.kda.a}` : '');
+    setVal($('mlObj'), `${ml.turtles?.ally || 0}-${ml.turtles?.enemy || 0} / ${ml.lords?.ally || 0}-${ml.lords?.enemy || 0}`);
+    $('mlAnalysis').innerHTML = `Peluang menang <b class="a">${a.win}%</b> · ${esc(a.phaseLabel)} (${esc(a.spikeNote)}) · Strategi <b style="color:${a.color}">${esc(a.plan)}</b><br>${a.tips.map(esc).join('<br>')}`;
+  }
   $('mcAnalyse').onclick = () => fire({ kind: 'mc', type: 'analysis' });
   function renderAnalysis() {
     if (!window.MCANALYSIS || !S) return;
@@ -258,6 +276,7 @@
     });
     Object.entries(MC_FIELDS).forEach(([id, k]) => setVal($(id), S.mc[k]));
     renderAnalysis();
+    renderMLAnalysis();
     if (first) {
       first = false;
       const d = S.draft || {};

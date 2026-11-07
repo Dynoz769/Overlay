@@ -39,6 +39,7 @@ const DEFAULT_STATE = {
     { icon: 'album', title: 'KOMEN ALBUM', sub: 'RM4 · MAINKAN ALBUM KAU' },
   ],
   mc: { round: '1-1', hp: 100, gold: 0, level: 1, streak: 0, synergies: [] },
+  ml: { minute: 0, sec: 0, allyKills: 0, enemyKills: 0, kda: null, gold: 0, turtles: { ally: 0, enemy: 0 }, lords: { ally: 0, enemy: 0 } },
   show: { spells: true, promo: true, badge: true, record: true, mc: true },
   // Auto detect (auto.html). Kawasan = pecahan (0-1) dari frame yang ditangkap.
   auto: {
@@ -213,6 +214,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/win') { fire({ kind: 'win' }); return send(res, 200, 'OK win'); }
   if (p === '/lose') { fire({ kind: 'lose' }); return send(res, 200, 'OK lose'); }
   if (p === '/draft') { fire({ kind: 'draft', view: q.v || 'cycle' }); return send(res, 200, 'OK draft'); }
+  if (p === '/ml') { fire({ kind: 'ml', type: q.t || 'analysis' }); return send(res, 200, 'OK ml'); }
   if (p === '/mc') { fire({ kind: 'mc', type: q.t || 'win', text: q.text, place: q.place }); return send(res, 200, 'OK mc'); }
   if (p === '/mode') { state.mode = q.m === 'mc' ? 'mc' : 'ml'; pushState(); return send(res, 200, 'OK mode ' + state.mode); }
 
