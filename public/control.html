@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <title>SISTEM LIVE · Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/control.css">
+</head>
+<body>
+  <header>
+    <h1><span class="dot"></span>SISTEM LIVE <small>control panel</small></h1>
+    <div class="mode" id="modeSwitch">
+      <button data-mode="ml">Mobile Legends</button>
+      <button data-mode="mc">Magic Chess</button>
+    </div>
+    <div class="links">
+      <a href="overlay.html?preview=1" target="_blank">Preview overlay ↗</a>
+      <a href="overlay.html?preview=1&w=1920&h=1080" target="_blank">Landscape ↗</a>
+      <span id="conn" class="conn">menyambung…</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= UMUM ================= -->
+    <section class="card">
+      <h2>Umum</h2>
+      <label>Teks badge <input id="badgeText" placeholder="SISTEM LIVE"></label>
+      <div class="row">
+        <label class="sw"><input type="checkbox" data-show="badge"> Badge</label>
+        <label class="sw"><input type="checkbox" data-show="record"> Rekod W/L</label>
+        <label class="sw"><input type="checkbox" data-show="spells"> Spell timer</label>
+        <label class="sw"><input type="checkbox" data-show="promo"> Promo bar</label>
+        <label class="sw"><input type="checkbox" data-show="mc"> Panel Magic Chess</label>
+      </div>
+      <div class="row">
+        <span>Rekod: <b id="recW">0</b>W · <b id="recL">0</b>L</span>
+        <button class="sm" id="recReset">Reset rekod</button>
+      </div>
+      <h3>Teks bebas</h3>
+      <div class="row"><input id="freeText" placeholder="cth: TERIMA KASIH GIFT!"><input id="freeSub" placeholder="sub (pilihan)"><button id="freeGo">Papar</button></div>
+    </section>
+
+    <!-- ================= KILL / WIN ================= -->
+    <section class="card ml-only">
+      <h2>Kill Detector · Win/Lose</h2>
+      <div class="grid btns" id="killBtns"></div>
+      <div class="row big">
+        <button class="win" data-fire="win">🏆 VICTORY</button>
+        <button class="lose" data-fire="lose">💔 DEFEAT</button>
+      </div>
+      <p class="hint">Hotkey (bila tak taip dalam kotak): <kbd>K</kbd> solo kill · <kbd>V</kbd> victory · <kbd>D</kbd> defeat · <kbd>F</kbd> full build</p>
+    </section>
+
+    <!-- ================= ITEM ================= -->
+    <section class="card ml-only">
+      <h2>Item Detector</h2>
+      <div class="row">
+        <input id="itemSearch" placeholder="cari item… (Enter = papar yang pertama)">
+        <button id="fullBuild">6 · ITEM PENUH</button>
+      </div>
+      <div class="row tabs" id="itemTabs">
+        <button data-cat="">Semua</button><button data-cat="magic">Magic</button><button data-cat="attack">Attack</button><button data-cat="defense">Defense</button><button data-cat="movement">Boots</button>
+      </div>
+      <div class="items" id="itemList"></div>
+    </section>
+
+    <!-- ================= DRAFT ================= -->
+    <section class="card ml-only wide">
+      <h2>Draft Pick · Counter Pick</h2>
+      <div class="draft">
+        <div><h3 class="ally">Ally</h3><div id="allyIn"></div></div>
+        <div><h3 class="enemy">Enemy</h3><div id="enemyIn"></div></div>
+        <div>
+          <h3>Hero saya</h3><input id="myHero" list="heroList" placeholder="cth: Chou">
+          <h3>Ban (pisah koma)</h3><input id="bans" placeholder="Gloo, Masha">
+          <div id="draftPreview" class="preview"></div>
+        </div>
+      </div>
+      <div class="row">
+        <button data-draft="predict">Win Prediction</button>
+        <button data-draft="spike">Power Spike</button>
+        <button data-draft="ban">Ban Suggestion</button>
+        <button data-draft="cycle">▶ Semua (cycle)</button>
+        <button class="ghost" id="draftClear">Kosongkan</button>
+      </div>
+    </section>
+
+    <!-- ================= SPELL ================= -->
+    <section class="card ml-only wide">
+      <h2>Voice Spell · Timer Musuh</h2>
+      <div id="spellRows"></div>
+      <div class="row">
+        <button id="spellReset">↺ Reset spell / simulasi</button>
+        <button id="voiceBtn" class="voice">🎙️ Mula voice listener</button>
+        <select id="voiceLang"><option value="ms-MY">Bahasa Melayu</option><option value="en-US">English</option><option value="id-ID">Indonesia</option></select>
+      </div>
+      <div id="voiceLog" class="log">Sebut: <i>"Hirara flicker"</i>, <i>"Fanny retri"</i>, <i>"Miya inspire"</i>, atau <i>"reset spell"</i>. Perlu Google Chrome / Edge.</div>
+      <p class="hint">Stream Deck (Website / Open URL): <code id="deckUrl"></code>?i=1 … ?i=5 (ikut susunan pick musuh) · tukar spell: <code>&amp;s=flicker</code> · reset: <code>?reset</code></p>
+    </section>
+
+    <!-- ================= PROMO ================= -->
+    <section class="card">
+      <h2>Promo Bar</h2>
+      <label>Maskot (emoji atau path gambar, cth <code>assets/mascot.png</code>) <input id="mascot" placeholder="🎧"></label>
+      <div id="promoRows"></div>
+      <div class="row"><button class="sm" id="promoAdd">+ Tambah promo</button><button class="sm" id="promoSave">Simpan</button></div>
+      <p class="hint">Ikon: crown, vip, album, gift, star, fire, game, heart — atau terus letak emoji.</p>
+    </section>
+
+    <!-- ================= MAGIC CHESS ================= -->
+    <section class="card mc-only wide">
+      <h2>Magic Chess</h2>
+      <div class="mcgrid">
+        <label>Round <input id="mcRound" placeholder="2-3"></label>
+        <label>HP <input id="mcHp" type="number" min="0" max="100"></label>
+        <label>Gold <input id="mcGold" type="number" min="0"></label>
+        <label>Level <input id="mcLevel" type="number" min="1" max="10"></label>
+        <label>Streak (+menang / −kalah) <input id="mcStreak" type="number"></label>
+      </div>
+      <div class="row">
+        <button class="win" id="mcWin">Round menang (+streak)</button>
+        <button class="lose" id="mcLose">Round kalah (−HP)</button>
+        <input id="mcDmg" type="number" value="8" style="width:70px" title="Damage HP bila kalah">
+        <button id="mcLevelUp">Level up</button>
+      </div>
+      <h3>Synergy</h3>
+      <div id="synRows"></div>
+      <div class="row"><button class="sm" id="synAdd">+ Synergy</button><button class="sm" id="synSave">Simpan</button></div>
+      <h3>Kedudukan akhir</h3>
+      <div class="row" id="placeBtns"></div>
+    </section>
+  </main>
+
+  <datalist id="heroList"></datalist>
+
+  <script src="data/heroes.js"></script>
+  <script src="data/items.js"></script>
+  <script src="js/draft.js"></script>
+  <script src="js/control.js"></script>
+</body>
+</html>

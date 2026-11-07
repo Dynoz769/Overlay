@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <title>SISTEM LIVE Overlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/overlay.css">
+</head>
+<body>
+  <!--
+    OBS Browser Source: http://127.0.0.1:8799/overlay.html
+    Parameter URL (pilihan):
+      ?w=1080&h=1920   saiz kanvas (default portrait TikTok). Landscape: ?w=1920&h=1080
+      ?only=badge,spells,stage,promo,record,mc   tunjuk modul tertentu sahaja
+      ?sound=0         matikan bunyi
+      ?preview=1       latar belakang petak (untuk test dalam browser)
+  -->
+  <div id="canvas">
+    <div class="badge" id="badge">SISTEM LIVE</div>
+    <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+    <div class="record" id="record"></div>
+
+    <div class="mc hidden" id="mc"></div>
+    <div class="syn hidden" id="syn"></div>
+
+    <div class="stage" id="stage"></div>
+    <div class="spells" id="spells"></div>
+    <div class="callout hidden" id="callout"></div>
+    <div class="promo" id="promo"></div>
+    <div id="fx"></div>
+  </div>
+
+  <script src="data/heroes.js"></script>
+  <script src="data/items.js"></script>
+  <script src="js/draft.js"></script>
+  <script src="js/sfx.js"></script>
+  <script src="js/overlay.js"></script>
+</body>
+</html>
