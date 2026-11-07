@@ -249,13 +249,14 @@
     const vote = modeVote(text);
     G.voteMC = vote === 'mc' ? (G.voteMC || 0) + 1 : 0;
     G.voteML = vote === 'ml' ? (G.voteML || 0) + 1 : 0;
-    if (G.voteMC >= 2 && S.mode !== 'mc') { S.mode = 'mc'; patch({ mode: 'mc' }); log('Magic Chess Go Go dikesan → mode MC', 'warn'); }
-    if (G.voteML >= 2 && S.mode !== 'ml') { S.mode = 'ml'; patch({ mode: 'ml' }); log('Mobile Legends dikesan → mode ML', 'warn'); }
+    const canSwitch = S.modeAuto !== false; // mode dipilih manual dalam control panel → jangan tukar
+    if (canSwitch && G.voteMC >= 2 && S.mode !== 'mc') { S.mode = 'mc'; patch({ mode: 'mc' }); log('Magic Chess Go Go dikesan → mode MC', 'warn'); }
+    if (canSwitch && G.voteML >= 2 && S.mode !== 'ml') { S.mode = 'ml'; patch({ mode: 'ml' }); log('Mobile Legends dikesan → mode ML', 'warn'); }
     if (S.mode === 'mc') { if (A().on.mc) mcFromFull(d1, d2, text); return; }
 
     const heroes = [...new Map([...findHeroes(d1.words || []), ...findHeroes(d2.words || [])].map((h) => [h.hero + Math.round(h.cy / 40), h])).values()];
     const isDraft = DRAFT_RE.test(text);
-    if (isDraft && S.mode !== 'ml') patch({ mode: 'ml' });
+    if (isDraft && S.mode !== 'ml' && S.modeAuto !== false) patch({ mode: 'ml' });
 
     if (isDraft && A().on.draft) {
       if (G.phase !== 'draft') { if (G.phase !== 'idle' || G.ally.length || G.resultFired) resetGame('draft baru'); setPhase('draft'); resetML(); }

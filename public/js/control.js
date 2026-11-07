@@ -39,7 +39,11 @@
   $('heroList').innerHTML = D.HEROES.map((h) => `<option value="${esc(h.name)}">`).join('');
 
   // ---------- Mode ----------
-  $('modeSwitch').addEventListener('click', (e) => { const m = e.target.dataset.mode; if (m) patch({ mode: m }); });
+  // klik ML / Magic Chess = kunci mode (Auto Detect tak tukar). 🤖 Auto = biar Auto Detect tukar sendiri.
+  $('modeSwitch').addEventListener('click', (e) => {
+    const m = e.target.closest('button')?.dataset.mode; if (!m) return;
+    patch(m === 'auto' ? { modeAuto: true } : { mode: m, modeAuto: false });
+  });
 
   // ---------- Umum ----------
   $('badgeText').addEventListener('change', (e) => patch({ badge: e.target.value || 'SISTEM LIVE' }));
@@ -264,7 +268,7 @@
   let first = true;
   function render() {
     document.body.dataset.mode = S.mode;
-    [...$('modeSwitch').children].forEach((b) => b.classList.toggle('on', b.dataset.mode === S.mode));
+    [...$('modeSwitch').children].forEach((b) => b.classList.toggle('on', b.dataset.mode === S.mode || (b.dataset.mode === 'auto' && S.modeAuto !== false)));
     const setVal = (el, v) => { if (el && document.activeElement !== el) el.value = v ?? ''; };
     setVal($('badgeText'), S.badge);
     document.querySelectorAll('[data-show]').forEach((cb) => cb.checked = !!S.show[cb.dataset.show]);

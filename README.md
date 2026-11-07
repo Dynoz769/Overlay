@@ -87,7 +87,7 @@ URL lain untuk Stream Deck / AutoHotkey:
 /item?id=holy-crystal
 /fullbuild   /win   /lose
 /draft?v=predict   (predict | spike | ban | cycle)
-/mode?m=mc         (ml | mc)
+/mode?m=mc         (ml | mc = kunci mode · auto = Auto Detect tukar sendiri)
 /mc?t=win          (win | lose | streak | losestreak | levelup | analysis | place&place=1)
 /ml               papar analisis game ML
 ```

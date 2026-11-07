@@ -23,6 +23,7 @@ const SPELL_CD = {
 
 const DEFAULT_STATE = {
   mode: 'ml', // 'ml' | 'mc'
+  modeAuto: true, // false = mode dikunci (dipilih manual), Auto Detect tak tukar
   badge: 'SISTEM LIVE',
   record: { w: 0, l: 0 },
   enemies: [
@@ -216,7 +217,11 @@ const server = http.createServer(async (req, res) => {
   if (p === '/draft') { fire({ kind: 'draft', view: q.v || 'cycle' }); return send(res, 200, 'OK draft'); }
   if (p === '/ml') { fire({ kind: 'ml', type: q.t || 'analysis' }); return send(res, 200, 'OK ml'); }
   if (p === '/mc') { fire({ kind: 'mc', type: q.t || 'win', text: q.text, place: q.place }); return send(res, 200, 'OK mc'); }
-  if (p === '/mode') { state.mode = q.m === 'mc' ? 'mc' : 'ml'; pushState(); return send(res, 200, 'OK mode ' + state.mode); }
+  if (p === '/mode') {
+    if (q.m === 'auto') state.modeAuto = true;
+    else { state.mode = q.m === 'mc' ? 'mc' : 'ml'; state.modeAuto = false; }
+    pushState(); return send(res, 200, 'OK mode ' + state.mode + (state.modeAuto ? ' (auto)' : ' (dikunci)'));
+  }
 
   // ----- Gambar yang ditangkap dari skrin (auto detect) -----
   if (p === '/api/assets' && req.method === 'GET') {
