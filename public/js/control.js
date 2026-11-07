@@ -194,12 +194,14 @@
     const sk = Math.max(0, S.mc.streak) + 1;
     patch({ mc: { streak: sk, round: nextRound(S.mc.round) } });
     fire(sk >= 3 ? { kind: 'mc', type: 'streak', n: sk } : { kind: 'mc', type: 'win' });
+    setTimeout(() => fire({ kind: 'mc', type: 'analysis' }), 600);
   };
   $('mcLose').onclick = () => {
     const sk = Math.min(0, S.mc.streak) - 1;
     const hp = Math.max(0, S.mc.hp - (Number($('mcDmg').value) || 0));
     patch({ mc: { streak: sk, hp, round: nextRound(S.mc.round) } });
     fire(sk <= -3 ? { kind: 'mc', type: 'losestreak', n: -sk } : { kind: 'mc', type: 'lose' });
+    setTimeout(() => fire({ kind: 'mc', type: 'analysis' }), 600);
   };
   $('mcLevelUp').onclick = () => patch({ mc: { level: Math.min(10, S.mc.level + 1) } }).then(() => fire({ kind: 'mc', type: 'levelup' }));
   $('placeBtns').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((p) => `<button data-place="${p}" class="${p === 1 ? 'win' : p > 4 ? 'lose' : ''}">#${p}</button>`).join('') + '<button class="ghost" id="mcNew">Game baru</button>';
@@ -209,6 +211,12 @@
     fire({ kind: 'mc', type: 'place', place: Number(p) });
     if (p <= 4) patch({ record: { w: S.record.w + 1 } }); else patch({ record: { l: S.record.l + 1 } });
   };
+  $('mcAnalyse').onclick = () => fire({ kind: 'mc', type: 'analysis' });
+  function renderAnalysis() {
+    if (!window.MCANALYSIS || !S) return;
+    const a = MCANALYSIS.analyze(S.mc);
+    $('mcAnalysis').innerHTML = `Top 4 <b class="a">${a.top4}%</b> · Juara <b class="e" style="color:var(--gold)">${a.win}%</b> · Strategi <b style="color:${a.color}">${esc(a.plan)}</b><br>${a.tips.map(esc).join('<br>')}`;
+  }
   function synRow(s = {}) {
     const d = document.createElement('div'); d.className = 'synrow';
     d.innerHTML = `<input data-k="name" placeholder="nama synergy" value="${esc(s.name)}"><input data-k="count" type="number" placeholder="ada" value="${esc(s.count)}"><input data-k="need" type="number" placeholder="perlu" value="${esc(s.need)}"><input data-k="color" type="color" value="${esc(s.color || '#ffc93c')}"><button class="sm">✕</button>`;
@@ -249,6 +257,7 @@
       setVal(document.querySelector(`[data-sp="cd"][data-i="${i}"]`), e.cd);
     });
     Object.entries(MC_FIELDS).forEach(([id, k]) => setVal($(id), S.mc[k]));
+    renderAnalysis();
     if (first) {
       first = false;
       const d = S.draft || {};

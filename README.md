@@ -84,6 +84,9 @@ URL lain untuk Stream Deck / AutoHotkey:
 ```
 
 ### Magic Chess
+
+**📊 Analisis round (auto):** setiap kali round bertukar, panel analisis keluar atas overlay: **peluang Top 4 & Juara**, kedudukan HP kau dalam lobby (#3/8), level berbanding sasaran stage, gold + interest, streak, bar kekuatan, dan **strategi**: `ECON`, `LEVEL UP`, `ROLL`, `JAGA STREAK`, `LOSE STREAK ECON`, `STABILKAN`, `ALL-IN` — dengan 2-3 tip (cth "Simpan 6 gold lagi → interest +4", "Mage 3/4 — cari 1 hero lagi"). Panel MC juga sentiasa tunjuk TOP 4 % dan PLAN. Peluang ialah anggaran heuristik (ubah pemberat dalam `public/js/mcanalysis.js`).
+
 Tukar mode ke **Magic Chess** di atas. Tekan **Round menang / kalah** — round, streak dan HP dikira automatik; banner Win Streak keluar pada streak 3+. Tambah synergy (nama, ada, perlu, warna) — bila cukup, banner "SYNERGY AKTIF" keluar. Tekan **#1–#8** di akhir game (Top 1 = CHAMPION + confetti).
 
 ## 4. Personalise

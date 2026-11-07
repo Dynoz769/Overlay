@@ -729,6 +729,23 @@
       }
     }
 
+    // senarai pemain (kanan skrin): "Nama 74" → HP semua pemain untuk analisis
+    const players = new Map();
+    const ignN = norm(A().ign || '');
+    for (const l of lines) {
+      if (l.bbox.x0 < W * 0.55 || l.bbox.y1 > H * 0.78) continue; // bukan kawasan kedai di bawah
+      const m = l.text.trim().match(/^(.*?[A-Za-z].*?)\s+(\d{1,3})\s*$/);
+      if (!m || +m[2] > 100) continue;
+      const key = norm(m[1]); if (key.length < 2 || players.has(key)) continue;
+      const me = ignN.length >= 3 && fuzzyIn(key, ignN.slice(0, 8)) <= tol(Math.min(8, ignN.length));
+      players.set(key, { name: m[1].trim(), hp: +m[2], me, x: l.bbox.x0 });
+      if (me && r.hp == null) r.hp = +m[2];
+    }
+    // senarai pemain sejajar dalam satu lajur — buang yang jauh dari median X
+    const xs = [...players.values()].map((p) => p.x).sort((a, b) => a - b), mx = xs[Math.floor(xs.length / 2)];
+    const plist = [...players.values()].filter((p) => Math.abs(p.x - mx) < W * 0.08).slice(0, 8).map(({ x, ...p }) => p);
+    if (plist.length >= 3) r.players = plist;
+
     // gold: nombor dengan ikon syiling — ambil yang tulisan paling besar
     let gBest = null, gH = 0;
     for (const w of words) {   // d1 (gambar asal) diproses dulu → diutamakan bila sama saiz
@@ -769,6 +786,8 @@
     if (r.gold != null && r.gold !== S.mc.gold) p.gold = r.gold;
     if (r.level != null && r.level !== S.mc.level) p.level = r.level;
     if (r.hp != null) { G.mcHpNow = r.hp; if (r.hp !== S.mc.hp) p.hp = r.hp; }
+    if (r.players && JSON.stringify(r.players) !== JSON.stringify(S.mc.players)) p.players = r.players;
+    let analyse = false;
     if (r.round && r.round !== G.mcRound) {
       // round bertukar → menang kalau HP tak turun sejak awal round lepas
       if (G.mcRound && G.mcHpStart != null && G.mcHpNow != null) {
@@ -780,6 +799,7 @@
       if (/^1-[12]$/.test(r.round)) { G.mcRankFired = false; p.streak = 0; if (G.mcRound) log('Game Magic Chess baru', 'warn'); }
       log(`MC round ${r.round} (${src})`);
       G.mcRound = r.round; p.round = r.round; G.mcHpStart = G.mcHpNow ?? null;
+      analyse = true;
     }
     if (r.level != null && G.mcLevel && r.level > G.mcLevel) fire({ kind: 'mc', type: 'levelup' });
     if (r.level != null) G.mcLevel = r.level;
@@ -798,8 +818,20 @@
       fire({ kind: 'mc', type: 'place', place: r.place });
       patch({ record: r.place <= 4 ? { w: S.record.w + 1 } : { l: S.record.l + 1 } });
     }
-    if (Object.keys(p).length) { Object.assign(S.mc, p); patch({ mc: p }); }
+    if (Object.keys(p).length) { Object.assign(S.mc, p); patch({ mc: p }).then(() => { if (analyse) fireAnalysis(); }); }
+    else if (analyse) fireAnalysis();
     $('stMC').textContent = `R ${G.mcRound || '-'} · HP ${S.mc.hp} · 💰${S.mc.gold} · Lv${S.mc.level} · ${(S.mc.synergies || []).map((x) => `${x.name} ${x.count}/${x.need}`).join(', ') || 'tiada synergy'}`;
+  }
+
+  // analisis round: tunggu sekejap supaya gold/HP round baru sempat dibaca
+  let analysisT;
+  function fireAnalysis() {
+    clearTimeout(analysisT);
+    analysisT = setTimeout(() => {
+      const a = window.MCANALYSIS.analyze(S.mc);
+      log(`📊 Analisis ${a.round}: Top4 ${a.top4}% · Juara ${a.win}% · ${a.plan}`, 'ev');
+      fire({ kind: 'mc', type: 'analysis' });
+    }, 3500);
   }
 
   // kawasan MC yang dilukis sendiri — lebih laju & tepat (pilihan)

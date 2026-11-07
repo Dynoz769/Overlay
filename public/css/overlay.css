@@ -230,4 +230,25 @@ body.preview { background: #2a2a33 repeating-conic-gradient(#33333d 0 25%, #2a2a
 .mcban h1 { font-family: var(--f-display); font-size: 140px; line-height: 1; text-transform: uppercase; filter: drop-shadow(6px 6px 0 rgba(0,0,0,.55)); animation: slam .5s cubic-bezier(.2,1.6,.4,1); }
 .mcban .sub { display: inline-block; margin-top: 10px; font-family: var(--f-cond); font-weight: 900; font-style: italic; font-size: 44px; background: #111; padding: 4px 28px; transform: skewX(-10deg); border: 3px solid currentColor; }
 
+.mca-head { display: flex; align-items: flex-end; gap: 28px; }
+.mca-round { font-family: var(--f-display); font-size: 92px; line-height: 1; }
+.mca-pct { text-align: center; flex: 1; }
+.mca-pct small { display: block; font-weight: 800; letter-spacing: 3px; font-size: 18px; color: var(--ink-dim); }
+.mca-pct b { font-family: var(--f-cond); font-style: italic; font-weight: 900; font-size: 96px; line-height: 1; }
+.mca-pct.t4 b { color: var(--blue); text-shadow: 0 0 24px rgba(54,184,255,.5); }
+.mca-pct.w1 b { color: var(--gold); text-shadow: 0 0 24px rgba(255,201,60,.5); }
+.mca-plan { display: flex; align-items: center; gap: 16px; margin: 12px 0; padding: 8px 18px; border: 3px solid var(--pc); border-radius: 10px; background: rgba(0,0,0,.35); }
+.mca-plan span { font-weight: 800; letter-spacing: 4px; font-size: 18px; color: var(--ink-dim); }
+.mca-plan b { font-family: var(--f-cond); font-style: italic; font-weight: 900; font-size: 54px; color: var(--pc); line-height: 1.05; }
+.mca-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.mca-stats span { background: rgba(255,255,255,.08); border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 20px; }
+.mca-stats em { font-style: normal; color: var(--ink-dim); font-size: 16px; }
+.mca-bar { position: relative; height: 24px; margin: 14px 0 8px; background: #2a1a24; border-radius: 12px; overflow: hidden; }
+.mca-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), var(--gold), var(--lime)); transition: width 1.2s cubic-bezier(.2,1,.3,1); }
+.mca-bar label { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 14px; letter-spacing: 3px; text-shadow: 0 1px 2px #000; }
+.mca-tips { list-style: none; }
+.mca-tips li { font-weight: 600; font-size: 21px; padding: 4px 0 4px 28px; position: relative; }
+.mca-tips li::before { content: '▸'; position: absolute; left: 6px; color: var(--gold); }
+.mca-tips li:first-child { font-weight: 800; color: #fff; }
+
 .hidden { display: none !important; }

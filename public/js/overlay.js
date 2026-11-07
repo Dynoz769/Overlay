@@ -290,7 +290,8 @@
       <div class="box hp"><small>HP · ${hp}</small><div class="hpbar"><i class="${hp < 30 ? 'low' : hp < 60 ? 'mid' : ''}" style="width:${hp}%"></i></div></div>
       <div class="box"><small>GOLD</small><b style="color:var(--gold)">${esc(m.gold)}</b></div>
       <div class="box"><small>LEVEL</small><b>${esc(m.level)}</b></div>
-      <div class="box streak ${sk > 0 ? 'win' : sk < 0 ? 'lose' : ''}"><small>STREAK</small><b>${sk > 0 ? '🔥' + sk : sk < 0 ? '❄️' + -sk : '-'}</b></div>`;
+      <div class="box streak ${sk > 0 ? 'win' : sk < 0 ? 'lose' : ''}"><small>STREAK</small><b>${sk > 0 ? '🔥' + sk : sk < 0 ? '❄️' + -sk : '-'}</b></div>
+      ${window.MCANALYSIS && m.round ? (() => { const a = MCANALYSIS.analyze(m); return `<div class="box"><small>TOP 4</small><b style="color:var(--blue)">${a.top4}%</b></div><div class="box" style="border-color:${a.color}"><small>PLAN</small><b style="color:${a.color};font-size:30px">${esc(a.plan)}</b></div>`; })() : ''}`;
     const syn = $('syn');
     if (syn) syn.innerHTML = (m.synergies || []).filter((s) => s.name).map((s) => {
       const active = Number(s.count) >= Number(s.need || 99);
@@ -298,7 +299,28 @@
     }).join('');
   }
 
+  function showAnalysis() {
+    if (!S || !window.MCANALYSIS) return;
+    const a = MCANALYSIS.analyze(S.mc);
+    const sk = a.streak > 0 ? `🔥${a.streak} menang` : a.streak < 0 ? `❄️${-a.streak} kalah` : '—';
+    const build = (html, pct) => { const el = node('pop dpanel mca', html); setTimeout(() => { el.querySelector('.mca-bar i').style.width = pct + '%'; }, 700); return el; };
+    enqueue(() => build(`${tag('Magic Chess · Analisis Round')}
+      <div class="mca-head"><div><div class="dsub" style="text-align:left">Round</div><div class="mca-round">${esc(a.round || '-')}</div></div>
+        <div class="mca-pct t4"><small>TOP 4</small><b>${a.top4}%</b></div>
+        <div class="mca-pct w1"><small>JUARA</small><b>${a.win}%</b></div></div>
+      <div class="mca-plan" style="--pc:${a.color}"><span>STRATEGI</span><b>${esc(a.plan)}</b></div>
+      <div class="mca-stats">
+        <span>❤️ HP ${a.hp}${a.rank ? ` <em>#${a.rank}/${a.alive}</em>` : ''}</span>
+        <span>⭐ Lv${a.level} <em>sasaran ${a.target}</em></span>
+        <span>💰 ${a.gold} <em>+${a.interest} interest</em></span>
+        <span>${sk}</span>
+      </div>
+      <div class="mca-bar"><i style="width:0%"></i><label>KEKUATAN ${a.strength}</label></div>
+      <ul class="mca-tips">${a.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`, a.strength), 9000, 'pop');
+  }
+
   function showMC(ev) {
+    if (ev.type === 'analysis') return showAnalysis();
     const MAP = {
       win: ['ROUND WIN', 'Menang pusingan', '#b6ff3c'],
       lose: ['ROUND LOSE', 'Kalah pusingan', '#ff2d4a'],
