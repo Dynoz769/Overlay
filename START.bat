@@ -3,12 +3,12 @@ title SISTEM LIVE
 cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 (
-  echo [X] Node.js belum dipasang. Download di https://nodejs.org (pilih LTS), pasang, kemudian buka START.bat semula.
+  echo [X] Node.js belum dipasang. Download di https://nodejs.org ^(pilih LTS^), pasang, kemudian buka START.bat semula.
   pause
   exit /b
 )
 if not exist node_modules (
-  echo Memasang OCR engine kali pertama... (perlu internet, sekali sahaja)
+  echo Memasang OCR engine kali pertama... ^(perlu internet, sekali sahaja^)
   call npm install
 )
 echo Menghidupkan server...
