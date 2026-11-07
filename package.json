@@ -3,7 +3,16 @@
   "version": "1.0.0",
   "description": "Overlay stream Mobile Legends & Magic Chess: item detector, kill detector, win/lose, draft pick, voice spell timer",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" },
-  "license": "MIT"
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@tesseract.js-data/eng": "1.0.0",
+    "tesseract.js": "5.1.1",
+    "tesseract.js-core": "5.1.1"
+  }
 }

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <title>SISTEM LIVE · Auto Detect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/control.css">
+  <style>
+    .stage-wrap { position: relative; background: #000; border-radius: 10px; overflow: hidden; }
+    #preview { display: block; width: 100%; height: auto; cursor: crosshair; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+    .status span { background: #0c070b; border: 1px solid var(--line); border-radius: 20px; padding: 3px 12px; font-size: 13px; }
+    .status b { color: var(--gold); }
+    .phase-draft { color: var(--blue) !important; } .phase-loading { color: var(--lime) !important; } .phase-game { color: var(--red) !important; }
+    #log { max-height: 340px; }
+    #log div { padding: 2px 0; border-bottom: 1px solid #1f141b; }
+    #log div.ev { color: var(--lime); } #log div.warn { color: var(--gold); } #log div.err { color: #ff8a9b; }
+    .unk { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+    .unk > div { display: flex; gap: 6px; align-items: center; background: #0c070b; padding: 6px; border-radius: 8px; }
+    .unk img { width: 48px; height: 48px; border-radius: 6px; image-rendering: pixelated; }
+    .unk select { flex: 1; }
+    .lib { display: flex; flex-wrap: wrap; gap: 4px; }
+    .lib img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--line); }
+    .big-start { font-size: 18px; padding: 12px 20px; background: var(--red); border-color: var(--red); color: #fff; }
+    .strip { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; min-height: 60px; }
+    .strip canvas { height: 70px; width: auto; border: 2px solid var(--line); border-radius: 6px; cursor: pointer; }
+    .strip canvas.pick { border-color: var(--lime); box-shadow: 0 0 12px var(--lime); }
+    .tpl { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tpl > div { display: flex; align-items: center; gap: 6px; background: #0c070b; padding: 4px 6px; border-radius: 8px; font-size: 13px; }
+    .tpl img { height: 36px; border-radius: 4px; }
+    .regsel button.on { background: var(--gold); color: #111; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="dot"></span>SISTEM LIVE <small>auto detect — biarkan tab ni terbuka masa live</small></h1>
+    <div class="links">
+      <a href="control.html" target="_blank">Control panel ↗</a>
+      <a href="overlay.html?preview=1" target="_blank">Preview overlay ↗</a>
+      <span id="conn" class="conn">menyambung…</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="card wide">
+      <h2>1 · Sumber skrin</h2>
+      <div class="row">
+        <button class="big-start" id="srcScreen">🖥️ Tangkap tetingkap / skrin</button>
+        <select id="camSel"><option value="">— atau pilih kamera (OBS Virtual Camera) —</option></select>
+        <button id="srcCam">Guna kamera</button>
+        <label class="sw" style="margin-left:auto">Test guna video rakaman: <input type="file" id="srcFile" accept="video/*"></label>
+        <button id="stopBtn" class="ghost">■ Stop</button>
+      </div>
+      <p class="hint">
+        Paling baik: dalam OBS, klik kanan source game (Game Capture / scrcpy / emulator) → <b>Windowed Projector (Source)</b>, kemudian pilih tetingkap projector tu di sini.
+        Jangan tangkap output OBS yang dah ada overlay — nanti sistem baca overlay sendiri.
+        OBS Virtual Camera pun boleh kalau set <b>Output Type: Source</b> → source game.
+      </p>
+      <div class="status">
+        <span>Fasa: <b id="stPhase">—</b></span>
+        <span>Mode: <b id="stMode">—</b></span>
+        <span>OCR: <b id="stOcr">memuat…</b></span>
+        <span>Frame: <b id="stRes">—</b></span>
+        <span>Draft: <b id="stDraft">—</b></span>
+        <span>Item game ni: <b id="stItems">0</b></span>
+      </div>
+      <div class="stage-wrap"><canvas id="preview" width="1280" height="720"></canvas></div>
+      <div class="row regsel" id="regSel">
+        <span class="hint">Set kawasan (pilih, kemudian drag atas gambar):</span>
+      </div>
+      <div class="row">
+        <button id="ocrTest">🔍 Test OCR skrin penuh</button>
+        <button id="regReset" class="ghost">Reset kawasan ke default</button>
+        <span class="hint" id="ocrOut"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2 · Tetapan auto</h2>
+      <label>Nama in-game (IGN) kau — untuk kenal team kau di loading screen <input id="ign" placeholder="cth: synoplays"></label>
+      <label>Hero utama — untuk Ban Suggestion masa fasa ban <input id="mainHero" list="heroList" placeholder="cth: Chou"></label>
+      <label>Team kau di loading screen
+        <select id="allyRow"><option value="auto">Auto (ikut IGN / draft)</option><option value="bottom">Baris bawah</option><option value="top">Baris atas</option></select>
+      </label>
+      <div class="row">
+        <label class="sw"><input type="checkbox" data-on="draft"> Draft pick</label>
+        <label class="sw"><input type="checkbox" data-on="loading"> Loading screen</label>
+        <label class="sw"><input type="checkbox" data-on="kill"> Kill banner</label>
+        <label class="sw"><input type="checkbox" data-on="allyKillsOnly"> Kill team aku je</label>
+        <label class="sw"><input type="checkbox" data-on="result"> Victory / Defeat</label>
+        <label class="sw"><input type="checkbox" data-on="items"> Item</label>
+        <label class="sw"><input type="checkbox" data-on="capture"> Tangkap gambar hero</label>
+        <label class="sw"><input type="checkbox" data-on="mc"> Magic Chess</label>
+      </div>
+      <h3>Item detector</h3>
+      <div class="row">
+        <select id="itemMode">
+          <option value="inventory">Slot inventori — ikon baru muncul = item siap</option>
+          <option value="quickbuy">Slot quick-buy — ikon bertukar = item lama dah beli</option>
+        </select>
+        <input type="number" id="itemSlots" min="1" max="6" style="width:70px" title="bilangan slot">
+        <select id="itemDir"><option value="horizontal">Mendatar</option><option value="vertical">Menegak</option></select>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Ikon item baru (label sekali sahaja)</h2>
+      <p class="hint">Ikon yang sistem tangkap tapi belum kenal muncul di sini. Pilih nama item sekali — lepas tu dia kenal automatik selamanya.</p>
+      <div class="unk" id="unk"></div>
+      <h3>Library item (<span id="libCount">0</span>)</h3>
+      <div class="lib" id="libItems"></div>
+      <h3>Gambar hero ditangkap (<span id="heroCount">0</span>)</h3>
+      <div class="lib" id="libHeroes"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>4 · Ajar banner &amp; VICTORY (sekali sahaja setiap jenis)</h2>
+      <p class="hint">Sistem cuba belajar sendiri (bila OCR dapat baca tulisan banner). Kalau ada banner yang terlepas: sejurus lepas banner tu keluar,
+        klik gambar yang betul dalam strip ni (6 saat terakhir), pilih jenis, Simpan. Lepas tu ia dikesan automatik setiap kali.</p>
+      <div class="row tabs" id="teachTabs"><button class="on" data-teach="banner">Banner kill</button><button data-teach="result">Victory / Defeat</button></div>
+      <div id="teachStrip" class="strip"></div>
+      <div class="row"><select id="teachType"></select><button id="teachSave">💾 Simpan template</button><button id="teachResume" class="ghost">▶ Sambung live</button></div>
+      <h3>Template disimpan</h3>
+      <div id="tplList" class="tpl"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>Log</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <datalist id="heroList"></datalist>
+  <script src="vendor/tesseract/tesseract.min.js"></script>
+  <script src="data/heroes.js"></script>
+  <script src="data/items.js"></script>
+  <script src="js/auto.js"></script>
+</body>
+</html>

@@ -3,3 +3,8 @@ state.json
 detector/config.json
 detector/calibrate.png
 __pycache__/
+# gambar yang ditangkap dari skrin kau sendiri
+public/assets/heroes/*.png
+public/assets/items/*.png
+public/assets/items/_unknown/
+public/assets/templates/*.png

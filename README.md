@@ -17,13 +17,13 @@ Bonus: badge **SISTEM LIVE** yang bertukar warna, promo bar berputar (Joki Rank,
 
 ## 1. Pasang & jalankan
 
-Perlu **Node.js 18+** sahaja (tiada `npm install`).
+Perlu **Node.js 18+**. Kali pertama jalankan `npm install` (pasang OCR engine untuk auto detect) — `START.bat` buat sendiri.
 
 ```bash
 node server.js
 ```
 
-Windows: double-click **`START.bat`**.
+Windows: double-click **`START.bat`** (buka control panel + auto detect sekali).
 
 - Control panel: <http://127.0.0.1:8799/control.html> → buka dalam **Google Chrome / Edge**
 - Overlay: <http://127.0.0.1:8799/overlay.html>
@@ -95,19 +95,40 @@ Tukar mode ke **Magic Chess** di atas. Tekan **Round menang / kalah** — round,
 - **Warna / font**: `public/css/overlay.css` (bahagian `:root`).
 - **Stat item / hero baru**: `public/data/items.js`, `public/data/heroes.js`.
 
-## 5. Auto Detector (pilihan, lanjutan)
+## 5. 🤖 AUTO DETECT — semua jalan sendiri
 
-Nak kill / victory / item dikesan sendiri tanpa tekan butang? `detector/auto_detect.py` tangkap skrin game (cth tetingkap scrcpy) dan guna template matching OpenCV.
+Buka **<http://127.0.0.1:8799/auto.html>** dalam Chrome (START.bat buka sendiri) dan biarkan tab tu terbuka sepanjang live.
+Kali pertama, `START.bat` akan `npm install` OCR engine (perlu internet sekali sahaja; lepas tu boleh offline).
 
-```bash
-pip install mss opencv-python numpy requests
-python detector/auto_detect.py --calibrate
-python detector/auto_detect.py
-```
+**Sumber skrin** — paling baik:
+1. Dalam OBS, klik kanan source game (Game Capture / scrcpy / emulator) → **Windowed Projector (Source)**.
+2. Dalam auto.html tekan **🖥️ Tangkap tetingkap / skrin** → pilih tetingkap projector tu.
 
-1. `--calibrate` simpan screenshot penuh → potong banner (SAVAGE, MANIAC, VICTORY…) dan ikon item, simpan dalam `detector/templates/kill/`, `result/`, `items/` (nama fail = jenis kill / `win` / `lose` / id item).
-2. Edit `detector/config.json` → `region` (kawasan tetingkap game) dan `zones`.
-3. Ketepatan bergantung pada kualiti templat — test dulu sebelum live.
+> Jangan tangkap output OBS yang dah ada overlay — nanti sistem baca overlay sendiri. OBS Virtual Camera boleh kalau *Output Type = Source* (source game sahaja).
+
+**Apa yang auto:**
+
+| Bila | Apa sistem buat |
+|---|---|
+| Fasa ban | Kesan tulisan "Ban" → keluar **Ban Suggestion** (ikut hero utama kau) |
+| Draft pick | Baca nama hero kiri (ally) & kanan (enemy) → setiap enemy pick keluar **kad Enemy Pick + counter** |
+| Loading screen | Baca 10 hero, kenal team kau guna **IGN** → **Win Prediction + Power Spike** keluar, **spell timer diisi** hero musuh, **📸 gambar hero ditangkap** dari skrin |
+| In-game | Banner **Savage / Maniac / First Blood / Killing Spree…** → banner overlay (team kau sahaja — warna biru vs merah) |
+| Item | Ikon baru dalam slot item → kad item (ikon diambil dari skrin), 6 item → ITEM PENUH |
+| Tamat | **VICTORY / DEFEAT** → animasi + rekod W-L, game reset sendiri |
+| Magic Chess | Tulisan "Magic Chess" → tukar mode sendiri; baca round/HP/gold, kira menang-kalah round & streak, kedudukan akhir |
+
+**Setup sekali sahaja (5 minit):**
+1. Isi **IGN** dan **hero utama**.
+2. **Kawasan**: pilih butang kawasan (Banner kill, Victory/Defeat, Slot item, MC…) dan drag atas preview untuk tandakan di mana benda tu muncul dalam game. Tekan **🔍 Test OCR** untuk tengok apa sistem baca.
+3. **Banner & VICTORY**: sistem belajar sendiri bila OCR dapat baca tulisan banner (ia simpan gambar banner sebagai *template*; lepas tu dikenal tepat setiap kali). Kalau ada yang terlepas: sejurus lepas banner keluar, klik gambar dia dalam strip **"Ajar banner"** (6 saat terakhir) → pilih jenis → Simpan. Sekali setiap jenis.
+4. **Item**: tandakan kawasan slot item & bilangan slot, hidupkan "Item". Ikon yang belum dikenal muncul dalam **"Ikon item baru"** — pilih nama sekali, lepas tu auto selamanya.
+
+**Had yang perlu tahu (jujur):**
+- OCR baca nama hero dengan baik, tapi tulisan besar bergaya (SAVAGE, VICTORY) susah untuk OCR — sebab tu template matching jadi cara utama. Dalam test, VICTORY dikesan dengan skor 0.86–0.92 dan tiada trigger palsu.
+- Spell musuh *tak boleh* dilihat dari skrin — timer mula guna suara / Stream Deck / hotkey (macam dalam video). Spell default diisi ikut lane (jungle = Retribution, lain = Flicker); sebut "Hirara inspire" untuk tukar.
+- Kawasan default ialah anggaran — set ikut skrin kau dulu, terutamanya untuk Magic Chess (belum diuji dengan rakaman MC sebenar).
+- Rakam satu game dan test guna **"Test guna video rakaman"** sebelum live.
 
 ## Struktur
 
@@ -118,5 +139,5 @@ public/control.html    control panel
 public/js/             overlay.js, control.js, draft.js, sfx.js
 public/data/           heroes.js, items.js
 public/css/            overlay.css, control.css
-detector/              auto detector Python (pilihan)
+public/auto.html       enjin AUTO DETECT (OCR + template)
 ```
