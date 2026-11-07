@@ -28,6 +28,8 @@
     .tpl { display: flex; flex-wrap: wrap; gap: 8px; }
     .tpl > div { display: flex; align-items: center; gap: 6px; background: #0c070b; padding: 4px 6px; border-radius: 8px; font-size: 13px; }
     .tpl img { height: 36px; border-radius: 4px; }
+    .status span.src-off { border-color: var(--red); background: #3a0c16; animation: b 1.2s infinite; }
+    .status span.src-off b { color: #fff; }
     .phone-help { margin: 10px 0; padding: 10px 14px; background: #0c070b; border: 1px solid var(--gold); border-radius: 10px; font-size: 14px; }
     .phone-help summary { cursor: pointer; color: var(--gold); font-weight: 700; }
     .phone-help li { margin: 6px 0; }
@@ -72,6 +74,7 @@
         <p class="hint">Bila skrin game dah nampak dalam OBS, klik kanan source tu → Windowed Projector (Source) → pilih dalam "Tangkap tetingkap / skrin".</p>
       </details>
       <div class="status">
+        <span>Sumber skrin: <b id="stSrc">—</b></span>
         <span>Fasa: <b id="stPhase">—</b></span>
         <span>Mode: <b id="stMode">—</b></span>
         <span>OCR: <b id="stOcr">memuat…</b></span>

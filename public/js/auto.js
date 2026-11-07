@@ -103,10 +103,13 @@
     s.getVideoTracks()[0].addEventListener('ended', stop);
     begin();
   }
-  $('srcScreen').onclick = async () => {
-    try { await startStream(await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 10 }, audio: false })); }
-    catch (e) { log('Tangkap skrin dibatalkan: ' + e.message, 'err'); }
-  };
+  async function pickScreen() {
+    try { await startStream(await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 10 }, audio: false })); return true; }
+    catch (e) { log('Tangkap skrin dibatalkan: ' + e.message, 'err'); return false; }
+  }
+  $('srcScreen').onclick = pickScreen;
+  // klik preview kosong = pilih sumber
+  $('preview').addEventListener('click', () => { if (!running && !editReg) pickScreen(); });
   $('srcCam').onclick = async () => {
     try { await startStream(await navigator.mediaDevices.getUserMedia({ video: { deviceId: $('camSel').value ? { exact: $('camSel').value } : undefined, width: 1920, height: 1080 } })); }
     catch (e) { log('Kamera gagal: ' + e.message, 'err'); }
@@ -129,12 +132,17 @@
   };
   $('stopBtn').onclick = stop;
   function stop() {
+    if (typeof setSrc === 'function' && $('stSrc')) setSrc(false);
     running = false;
     stream?.getTracks().forEach((t) => t.stop()); stream = null;
     video.pause();
     $('stPhase').textContent = '—';
   }
-  function begin() { running = true; resetGame('mula'); log('Sumber skrin aktif — auto detect berjalan.', 'ev'); }
+  function begin() { running = true; resetGame('mula'); setSrc(true); log('Sumber skrin aktif — auto detect berjalan.', 'ev'); }
+  function setSrc(on) {
+    $('stSrc').textContent = on ? 'aktif ✔' : 'TIADA — tekan "Tangkap tetingkap / skrin"';
+    $('stSrc').parentElement.className = on ? '' : 'src-off';
+  }
 
   function grab() {
     if (!running || video.readyState < 2 || !video.videoWidth) return false;
@@ -980,7 +988,7 @@
   });
   function drawPreview() {
     pv.width = frame.width || 1280; pv.height = frame.height || 720;
-    if (frame.width && running) pctx.drawImage(frame, 0, 0); else { pctx.fillStyle = '#111'; pctx.fillRect(0, 0, pv.width, pv.height); pctx.fillStyle = '#888'; pctx.font = '28px sans-serif'; pctx.fillText('Pilih sumber skrin di atas', 40, 60); }
+    if (frame.width && running) pctx.drawImage(frame, 0, 0); else { pctx.fillStyle = '#111'; pctx.fillRect(0, 0, pv.width, pv.height); pctx.fillStyle = '#888'; pctx.font = '28px sans-serif'; pctx.fillText('Belum ada sumber skrin — klik sini atau tekan "Tangkap tetingkap / skrin"', 40, 60); }
     if (!S) return;
     const W = pv.width, H = pv.height, mc = S.mode === 'mc';
     const show = mc ? ['mcRound', 'mcGold', 'mcHp', 'mcRank'] : ['banner', 'result', ...(A().on.items ? ['items'] : [])];
@@ -999,7 +1007,12 @@
     if (Date.now() < showBoxesUntil) { pctx.strokeStyle = '#0ff'; pctx.lineWidth = 1; lastBoxes.forEach((b) => pctx.strokeRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0)); }
   }
   $('ocrTest').onclick = async () => {
-    if (!grab()) return log('Pilih sumber skrin dulu.', 'err');
+    if (!running) {
+      log('Belum ada sumber skrin — pilih tetingkap game / Windowed Projector dulu.', 'warn');
+      if (!(await pickScreen())) return;
+      await new Promise((r) => setTimeout(r, 800));
+    }
+    if (!grab()) return log('Skrin belum sedia — cuba tekan sekali lagi.', 'err');
     const data = await ocr(wFull, cropCanvas({ x: 0, y: 0, w: 1, h: 1 }, { threshold: 170 }));
     lastBoxes = data.words.map((w) => w.bbox); showBoxesUntil = Date.now() + 8000;
     const heroes = findHeroes(data.words).map((h) => h.hero);
@@ -1026,7 +1039,7 @@
   $('itemDir').onchange = (e) => patch({ auto: { items: { dir: e.target.value } } });
   document.querySelectorAll('[data-on]').forEach((cb) => cb.addEventListener('change', () => patch({ auto: { on: { [cb.dataset.on]: cb.checked } } })));
 
-  resetGame();
+  resetGame(); setSrc(false);
   // hook untuk debug / test
   window.__auto = { mlFromFull, mcFromFull, updateMC, scanFull, grab, cropCanvas, ocr, findHeroes, regionPng, regionVec, bestTemplate, video, frame, workers: () => ({ wFull, wReg }), G };
 })();
