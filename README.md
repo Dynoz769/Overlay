@@ -120,6 +120,13 @@ Cucuk kabel USB ke laptop **tak** hantar skrin phone ke laptop (cuma charge / fa
 
 Lepas skrin game nampak dalam OBS → klik kanan source → **Windowed Projector (Source)** → pilih dalam Auto Detect.
 
+### ⚡ Setup OBS automatik (`SETUP-OBS.bat`)
+Lepas skrin phone / game dah ada dalam OBS:
+1. OBS → **Tools → WebSocket Server Settings** → tanda **Enable WebSocket server** → OK (salin password dari *Show Connect Info*).
+2. Pastikan `START.bat` dah jalan, kemudian double-click **`SETUP-OBS.bat`** → masukkan password bila diminta.
+
+Dia akan: cari source phone kau, tambah **Browser Source overlay** atas scene semasa (saiz ikut kanvas portrait/landscape, penuh skrin, paling atas), dan buka **Windowed Projector** source phone. Lepas tu dalam Auto Detect: **Tangkap tetingkap / skrin** → tab *Window* → *Windowed Projector (Source) - …*.
+
 **Sumber skrin** — paling baik:
 1. Dalam OBS, klik kanan source game (Game Capture / scrcpy / emulator) → **Windowed Projector (Source)**.
 2. Dalam auto.html tekan **🖥️ Tangkap tetingkap / skrin** → pilih tetingkap projector tu.
